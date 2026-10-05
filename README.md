@@ -27,35 +27,56 @@ These are observations from one dataset and one split. The full evidence and the
 ```
 README.md
 Our_Work/
-  notebooks/        11 notebooks that produce the results
-    superseded/     2 earlier notebooks kept for reference
-  documents/        report, literature comparison, trial log
-  figures/          charts and per-run CSVs, one folder per notebook
-Preprocessed Dataset/   model-ready data (large, not meant for Git)
-graphify-out/           files from a code-graph tool (not part of the results)
+  notebooks/              11 notebooks that produce the results, grouped by purpose
+    01_preprocessing/     data cleaning and export
+    02_tabular_models/    baselines and the LightGBM experiments
+    03_graph_models/      the GNN experiments and graph features for LightGBM
+    04_evaluation/        bootstrap intervals
+    superseded/           2 earlier notebooks kept for reference
+  documents/              report, literature comparison, trial log
+  figures/                charts and per-run CSVs, one folder per notebook
+Preprocessed Dataset/     model-ready data (large, not meant for Git)
+graphify-out/             files from a code-graph tool (not part of the results)
 ```
 
 ## Files
 
 ### `Our_Work/notebooks/`
 
-Run in this order (each uses the output of `unsw-nb15-preprocessing`). All were run on Kaggle with the dataset `shahiismyname/unsw-nb15-preprocessed-dataset` attached.
+Run in the order of the folder numbers (every notebook uses the output of `01_preprocessing`). All were run on Kaggle with the dataset `shahiismyname/unsw-nb15-preprocessed-dataset` attached.
+
+#### `01_preprocessing/`
 
 | Notebook | What it does |
 |---|---|
 | `unsw-nb15-preprocessing.ipynb` | Cleans the raw CSVs (removes duplicates), selects and transforms features using training data only, checks label overlap, builds the SMOTE training set and the graph endpoint tables, and exports everything in `Preprocessed Dataset/`. |
+
+#### `02_tabular_models/`
+
+| Notebook | What it does |
+|---|---|
 | `unsw-nb15-baseline.ipynb` | First baselines: Random Forest, LightGBM, XGBoost, MLP; the two-stage model and an ensemble. These first numbers had two weaknesses (an effectively unweighted LightGBM and a leaky SMOTE validation set) that later notebooks correct. |
 | `unsw-nb15-design-controls.ipynb` | Controlled comparison of five LightGBM variants (class weights, single vs two-stage, with and without SMOTE rows), 3 seeds. Source of the 0.670 model. |
 | `unsw-nb15-ttl-ablation.ipynb` | Best tabular model with and without the three TTL features; saves its test predictions. |
 | `unsw-nb15-class-merge-check.ipynb` | Re-scores the predictions with overlapping classes merged or removed, to show how much the overlap limits macro F1. A view of a changed task, not a result. |
+
+#### `03_graph_models/`
+
+| Notebook | What it does |
+|---|---|
 | `unsw-nb15-gnn.ipynb` | Builds the flow graph ((IP, port) nodes, flows as edges), draws graph visuals, trains the first E-GraphSAGE (neighbour sampling) and fuses it with the tabular model. |
 | `unsw-nb15-gnn-density.ipynb` | Matches train graph density to the test graph and runs the no-graph and shuffled-edge controls (5 seeds). |
 | `unsw-nb15-gnn-weights.ipynb` | Retrains the GNN with the full balanced class weights instead of the square-root weights. |
 | `unsw-nb15-egraphsage.ipynb` | E-GraphSAGE closer to the original paper (full-batch, full neighbourhood, linear classifier on node embeddings), with plain and weighted loss and the same controls (3 seeds). Also reports weighted F1. |
 | `unsw-nb15-graph-features.ipynb` | Gives LightGBM graph-derived features (endpoint degrees and neighbour feature means) and a shuffled-graph control. |
+
+#### `04_evaluation/`
+
+| Notebook | What it does |
+|---|---|
 | `unsw-nb15-bootstrap.ipynb` | Bootstrap intervals over the test set and paired differences between conditions, using the saved predictions of the notebooks above. |
 
-`notebooks/superseded/`
+#### `superseded/`
 
 | Notebook | Why it is kept |
 |---|---|
