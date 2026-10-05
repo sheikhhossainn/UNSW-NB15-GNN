@@ -15,12 +15,12 @@ These are observations from one dataset and one split. The full evidence and the
 | Class weighting made the largest difference among the tabular choices | +0.076 macro F1 (single-stage LightGBM) |
 | A two-stage design added a smaller gain; synthetic (SMOTE) rows did not help | +0.011; removing them gave +0.011 to +0.015 |
 | Best score: two-stage weighted LightGBM on the original data | 0.670 macro F1 (95% interval 0.658 to 0.679); picked on the test set among five variants, so possibly slightly optimistic |
-| Analysis and Backdoor stay near F1 0.17 in every model | About 80% of their rows have another row with identical features and a different label (likely a major reason, not proven) |
+| Analysis and Backdoor stay near F1 0.17 in every model | About 80% of their training rows have another row with identical features and a different label. This lowers the achievable score but does not explain all of it: a rule that memorises the most common label of each group reaches only about F1 0.36 on them |
 | The graph gave our first GNN a small gain once train and test graph density were matched | +0.017 macro F1 over the same network without the graph |
 | A paper-style E-GraphSAGE showed no gain from the graph | -0.008 to -0.010 with matched density |
 | Graph features did not help LightGBM | 0.6709 vs 0.6695 |
 | Both GNNs stay below the best tree model | 0.07 to 0.08 macro F1; cause not isolated |
-| Weighted F1 was about 0.98 for every model, so it cannot tell them apart | Macro F1 ranges from 0.51 to 0.67 |
+| Weighted F1 was 0.978 to 0.9825 for the paper-style GNN conditions and the best LightGBM model, so it cannot tell them apart | Macro F1 ranges from 0.51 to 0.67 |
 
 ## Folder layout
 
@@ -67,7 +67,7 @@ Run in this order (each uses the output of `unsw-nb15-preprocessing`). All were 
 | File | Contents |
 |---|---|
 | `UNSW-NB15-Report.docx` | Report for the professor: preprocessing, baselines, model settings and why, metrics, the GNN, results and limits, written in plain English. |
-| `UNSW-NB15-Literature-Comparison.docx` | 18 related papers in a table (dataset, split, method, metric, result, how much we read), how close each is to our setup, and our findings matched against them. Most papers are marked "Abstract only" and need their full text opened before citing. |
+| `UNSW-NB15-Literature-Comparison.docx` | 14 related papers in a table (dataset, split, method, metric, result, how much we read), how close each is to our setup, and our findings matched against them. Half of the papers are marked "Abstract only" and need their full text opened before citing. |
 | `analysis.md` | Chronological trial log with every experiment, number and correction. The most detailed record. |
 
 ### `Our_Work/figures/`
