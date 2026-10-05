@@ -1,0 +1,32 @@
+condition | macro F1 (95% CI) | macro no Worms | weighted F1
+plain loss | no graph                                    0.523 (0.517-0.529) | 0.581 | 0.9812
+plain loss | real graph, full train graph                0.528 (0.522-0.533) | 0.586 | 0.9811
+plain loss | real graph, matched density                 0.514 (0.507-0.519) | 0.571 | 0.9810
+plain loss | shuffled edges, matched density             0.511 (0.506-0.517) | 0.568 | 0.9801
+sqrt class weights | no graph                            0.600 (0.589-0.610) | 0.629 | 0.9796
+sqrt class weights | real graph, full train graph        0.594 (0.583-0.603) | 0.630 | 0.9797
+sqrt class weights | real graph, matched density         0.592 (0.581-0.601) | 0.625 | 0.9794
+sqrt class weights | shuffled edges, matched density     0.564 (0.552-0.576) | 0.606 | 0.9784
+two-stage LightGBM                                       0.670 (0.659-0.680) | 0.657 | 0.9825
+
+paired differences A - B: macro F1 | 95% CI | macro no Worms | CI | weighted F1
+sqrt class weights | real graph, matched density MINUS sqrt class weights | no graph
+    -0.008 (-0.016..-0.001) | no Worms -0.003 (-0.008..+0.001) | weighted -0.0002
+sqrt class weights | real graph, matched density MINUS sqrt class weights | shuffled edges, matched density
+    +0.029 (+0.014..+0.041) | no Worms +0.019 (+0.015..+0.024) | weighted +0.0011
+sqrt class weights | real graph, full train graph MINUS sqrt class weights | no graph
+    -0.006 (-0.014..+0.001) | no Worms +0.001 (-0.003..+0.006) | weighted +0.0001
+plain loss | real graph, matched density MINUS plain loss | no graph
+    -0.010 (-0.014..-0.005) | no Worms -0.011 (-0.016..-0.006) | weighted -0.0002
+plain loss | real graph, full train graph MINUS plain loss | no graph
+    +0.005 (-0.001..+0.009) | no Worms +0.005 (-0.001..+0.010) | weighted -0.0001
+plain loss | real graph, matched density MINUS plain loss | shuffled edges, matched density
+    +0.002 (-0.001..+0.007) | no Worms +0.003 (-0.001..+0.007) | weighted +0.0008
+sqrt class weights | no graph MINUS plain loss | no graph
+    +0.076 (+0.065..+0.088) | no Worms +0.047 (+0.041..+0.054) | weighted -0.0016
+two-stage LightGBM MINUS sqrt class weights | real graph, matched density
+    +0.077 (+0.067..+0.088) | no Worms +0.031 (+0.026..+0.037) | weighted +0.0030
+two-stage LightGBM MINUS sqrt class weights | no graph
+    +0.070 (+0.060..+0.081) | no Worms +0.028 (+0.023..+0.033) | weighted +0.0029
+two-stage LightGBM MINUS plain loss | real graph, full train graph
+    +0.142 (+0.129..+0.153) | no Worms +0.070 (+0.063..+0.077) | weighted +0.0013

@@ -1,0 +1,15 @@
+comparison,difference,95% CI,excludes 0,"diff, no Worms",95% CI (no Worms),excludes 0 (no Worms)
+two-stage design (both weighted),0.011085200200812384,+0.005 to +0.019,True,0.004595141692277149,+0.002 to +0.007,True
+class weights (single-stage),0.07607929596523355,+0.065 to +0.087,True,0.03614896062676365,+0.031 to +0.042,True
+no SMOTE rows (two-stage),0.01527169951588625,+0.007 to +0.024,True,0.007107856683237657,+0.004 to +0.010,True
+no SMOTE rows (single-stage),0.010859990118311291,+0.004 to +0.018,True,0.004273482944142426,+0.001 to +0.007,True
+GNN: real graph vs no graph,0.016828331966635135,+0.008 to +0.024,True,0.01048091068453938,+0.007 to +0.014,True
+GNN: real graph vs shuffled edges,0.023905788744962075,+0.018 to +0.029,True,0.01832812371306325,+0.015 to +0.022,True
+GNN: matched density vs denser training graph,0.006462365399801162,+0.001 to +0.013,True,0.0004076132443466829,-0.002 to +0.003,False
+GNN: denser training graph vs no graph,0.010365966566833973,+0.006 to +0.015,True,0.010073297440192697,+0.007 to +0.014,True
+best tree model vs GNN,0.08404053216067464,+0.073 to +0.095,True,0.03985380578954667,+0.035 to +0.045,True
+single-stage tree vs GNN without graph,0.08978366392649739,+0.076 to +0.103,True,0.0457395747818089,+0.040 to +0.051,True
+GNN full weights: real graph vs no graph,0.022928204091837823,+0.020 to +0.026,True,0.027163059169825088,+0.024 to +0.030,True
+GNN: full vs square-root class weights,-0.04169856353995782,-0.049 to -0.034,True,-0.02245817421241747,-0.026 to -0.019,True
+single-stage tree vs GNN without graph (both full weights),0.1375820995916579,+0.126 to +0.148,True,0.08487989747951208,+0.080 to +0.091,True
+best tree model vs GNN (full weights),0.12573909570063246,+0.116 to +0.135,True,0.06231198000196414,+0.057 to +0.068,True

@@ -1,0 +1,23 @@
+# Large model-ready data (hosted on Kaggle: shahiismyname/unsw-nb15-preprocessed-dataset)
+Preprocessed Dataset/
+
+# Code-graph tool output, not part of the results
+graphify-out/
+
+# Python / notebook clutter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Large data and model files if they appear elsewhere
+*.parquet
+*.pkl
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Word lock files
+~$*.docx
