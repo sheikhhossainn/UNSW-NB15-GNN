@@ -1,0 +1,11 @@
+A,B,metric,A minus B,95% interval
+"GNN, graph","GNN, no graph",weighted F1,-0.0005616971089922216,-0.0007 to -0.0004
+"GNN, graph","GNN, no graph",macro F1,-0.009714749929575031,-0.0176 to -0.0020
+"LightGBM, class weights","LightGBM, plain",weighted F1,0.0013875906088748082,+0.0010 to +0.0018
+"LightGBM, class weights","LightGBM, plain",macro F1,0.07541275284211726,+0.0658 to +0.0839
+"LightGBM, two-stage, class weights","LightGBM, class weights",weighted F1,0.0006066635873092993,+0.0005 to +0.0007
+"LightGBM, two-stage, class weights","LightGBM, class weights",macro F1,-0.001569449857800289,-0.0092 to +0.0059
+"LightGBM, class weights + tuned class scales","LightGBM, class weights",weighted F1,0.0018273104489153855,+0.0017 to +0.0020
+"LightGBM, class weights + tuned class scales","LightGBM, class weights",macro F1,0.011769704154383685,+0.0060 to +0.0174
+"LightGBM, class weights","GNN, graph",weighted F1,0.001165645326917949,+0.0010 to +0.0013
+"LightGBM, class weights","GNN, graph",macro F1,0.044104703644094335,+0.0338 to +0.0550

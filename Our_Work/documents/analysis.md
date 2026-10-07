@@ -17,6 +17,8 @@ A record of what we tried, what we observed, and why each next step followed. Ev
 | Same GNN, graph switched off | 0.569 (± 0.015) | 0.556 - 0.581 |
 | Same GNN, shuffled edges | 0.562 (± 0.016) | 0.552 - 0.571 |
 
+On the 5:2:3 split of the GTCN-G paper (section 12, a different split from the table above) every model we trained, including LightGBM without class weights, scored a weighted F1 of 0.980 to 0.984 against 0.9512 reported for GTCN-G; this is not a like-for-like comparison. The best macro F1 there was 0.667 (class-weighted LightGBM with tuned class scales).
+
 What the evidence suggests (details and caveats in the sections below):
 1. Class weighting made the largest difference we measured (+0.076 for single-stage LightGBM). The two-stage design added a smaller gain (+0.011), and adding synthetic SMOTE rows lowered the score slightly (-0.011 to -0.015).
 2. Analysis and Backdoor stayed near F1 0.17 in every model. About 80% of their rows have another row with identical features and a different label, which lowers what any model can reach on them, though not by itself the whole gap (a rule that memorises the most common label of each identical-feature group reaches only about F1 0.36 on them in the training data).
@@ -158,9 +160,60 @@ Our 10-class macro F1 of about 0.67 is in a plausible range, but protocols diffe
 - The final model was chosen using test macro F1 among five variants (section 5), so 0.670 may be slightly optimistic.
 - Worms has 34 test rows and moves macro F1 by several hundredths; we give results without Worms where it matters.
 - One graph definition ((IP, port) nodes, no time information) and two GNN architectures without tuning. The paper-style network (section 8) was trained for at most 500 full-batch epochs, many runs stopped near that limit, and its learning rate was not tuned. We ruled out three explanations for the gap to the tree model but did not identify the remaining cause.
+- Section 12 uses a different split (5:2:3, stratified random) from sections 1 to 11 (80/20), so its numbers are not directly comparable with theirs. It is not an exact replication of the paper (several settings are not stated), GTCN-G itself was not reimplemented, no run keeps duplicate rows, and the LightGBM seeds differ only through the binning sample.
 - The merged-class numbers are a view of a changed task, not results.
 - Sections 2 to 4 quote numbers measured at the time, with the two weaknesses described in section 2; later sections use the corrected pipelines.
 
+## 12. Replicating the GTCN-G setup (5:2:3 split)
+
+Our faculty asked us to replicate the setup of the paper we targeted (GTCN-G, Xu et al., arXiv 2510.07285) and see whether our results improve. Stated in the paper: 10-class UNSW-NB15, train/validation/test 5:2:3, 10 epochs, mini-batches of 500, learning rate 0.007 for GTCN-G, weighted F1. Reported weighted F1: E-GraphSAGE 0.8756, E-GraphSAGE-M 0.8934, GAT 0.9178, GTCN-G 0.9512. Not stated: how the split was made, preprocessing (duplicates, features, scaling), loss, optimizer, learning rates of the baselines; no code link. So the replication is as close as the text allows, not exact, and we did not reimplement GTCN-G.
+
+**Split (both notebooks).** The project's deduplicated, preprocessed flows (train and test files joined), stratified random 50/20/30: 1,021,170 train, 408,468 validation, 612,702 test flows (test: Normal 584,671, Worms 51). All choices were made on validation; the test set was used once per model. Feature selection and scaling had been fitted on the earlier 80% training part, so some of the new test flows were part of that fitting (effect not measured, expected small). A run that keeps duplicate rows was not done.
+
+### 12.1 Notebook A: the paper's baseline (`unsw-nb15-paper-split-replication`, GPU, 3 seeds)
+
+E-GraphSAGE-M style: two layers, mean aggregation over 8 sampled neighbours per hop, batches of 500, 128 hidden units, dropout 0.2, constant node feature, linear classifier on the two embeddings, plain cross-entropy, Adam. Each split gets its own graph. With the learning rate 0.007 all three seeds collapsed within two epochs to predicting Normal for every flow (weighted F1 0.9319, macro F1 0.098); 0.007 is the paper's value for GTCN-G, not for its baselines, so we used 0.001 (the original E-GraphSAGE value). Training ran past the paper's 10 epochs with the learning rate halved after 5 epochs without improvement of validation weighted F1 and early stopping after 20 (maximum 100 epochs); best epochs 35 to 48.
+
+| Test score | after epoch 10 | at best validation epoch |
+|---|---|---|
+| weighted F1 | 0.9808 ± 0.0009 | 0.9836 ± 0.0002 |
+| macro F1 | 0.536 ± 0.001 | 0.581 ± 0.002 |
+| accuracy | 0.9828 ± 0.0004 | 0.9839 ± 0.0001 |
+
+Per-class F1 at the best epoch: Normal 0.996, Generic 0.896, Shellcode 0.866, Reconnaissance 0.853, Exploits 0.807, Fuzzers 0.588, Worms 0.278, DoS 0.274, Backdoor 0.243, Analysis 0.008. The curves are still changing at epoch 10 and settle after roughly epoch 40. Our weighted F1 (0.981 to 0.984) is far above the 0.8934 the paper reports for E-GraphSAGE-M; we do not know why (preprocessing, split type, loss and learning rate may all differ).
+
+### 12.2 Notebook B: what improves on it (`unsw-nb15-paper-split-improved`, GPU, 3 seeds)
+
+LightGBM in four versions (leaves chosen on validation: 31; early stopping on validation log loss; "tuned class scales" are per-class probability multipliers tuned on validation macro F1) and an improved E-GraphSAGE-M (A plus square-root class weights and the flow's own features in the classifier; stops on validation macro F1) with the real graph and with every flow isolated.
+
+| Condition | weighted F1 | macro F1 | 95% CI macro F1 (seed 42) |
+|---|---|---|---|
+| LightGBM, plain | 0.9802 ± 0.0002 | 0.581 ± 0.003 | 0.572 - 0.590 |
+| LightGBM, class weights | 0.9815 ± 0.0003 | 0.655 ± 0.001 | 0.645 - 0.667 |
+| LightGBM, two-stage, class weights | 0.9820 ± 0.0005 | 0.655 ± 0.001 | 0.643 - 0.665 |
+| LightGBM, class weights + tuned class scales | 0.9831 ± 0.0005 | 0.667 ± 0.002 | 0.656 - 0.678 |
+| GNN, graph | 0.9804 ± 0.0000 | 0.610 ± 0.003 | 0.602 - 0.623 |
+| GNN, no graph | 0.9809 ± 0.0001 | 0.623 ± 0.003 | 0.612 - 0.632 |
+
+Paired differences (bootstrap, same test rows, seed-42 predictions), weighted F1 / macro F1:
+
+- Class weights minus plain (LightGBM): +0.0014 (+0.0010 to +0.0018) / +0.075 (+0.066 to +0.084).
+- Two-stage minus single-stage: +0.0006 (+0.0005 to +0.0007) / -0.002 (-0.009 to +0.006).
+- Tuned class scales minus class weights: +0.0018 (+0.0017 to +0.0020) / +0.012 (+0.006 to +0.017).
+- Real graph minus no graph (GNN): -0.0006 (-0.0007 to -0.0004) / -0.010 (-0.018 to -0.002).
+- LightGBM with class weights minus GNN with graph: +0.0012 (+0.0010 to +0.0013) / +0.044 (+0.034 to +0.055).
+
+What this shows:
+- **Weighted F1.** All our models score 0.980 to 0.984, above the 0.9512 reported for GTCN-G, including LightGBM without class weights and the network without the graph. Differences among our models are at most 0.004; the highest is the network of 12.1 (0.9836), above the tuned LightGBM (0.9831). We cannot call this an improvement over GTCN-G: we did not reproduce its stated baselines (0.8934 against our 0.981) and its preprocessing, split type and loss are unknown.
+- **Macro F1** (not reported by the paper): the best model is class-weighted LightGBM with validation-tuned class scales, 0.667, which is 0.086 above the network of 12.1. The Analysis and Normal multipliers reached the edge of the grid (4.0) in all three seeds; a wider grid was not tried. Analysis F1 rose from 0.175 to 0.244 while Backdoor fell from 0.182 to 0.176. Analysis stays below 0.25 and Backdoor below 0.29 in every model.
+- **Graph.** No gain for the improved GNN (-0.010 macro F1), in line with section 8.
+- **Two-stage design.** No gain on this split, while section 5 found +0.011 on the 80/20 split; the effect is not consistent across splits.
+- **Seeds.** The three LightGBM seeds differ only through the histogram binning sample (there is no row or feature sampling), so their spread understates real variation.
+
+### 12.3 Stability check of LightGBM (`unsw-nb15-plain-lightgbm-check`, CPU)
+
+In the unweighted LightGBM validation log loss rose from the first tree (0.136 at 1 tree, 1.03 at 400), so early stopping kept 1 tree in every seed. Test macro F1 of the unweighted model: 0.581 (1 tree), 0.528 (5), 0.532 (20), 0.488 (50), 0.398 (100), 0.353 (400). The class-weighted model: 0.584 (1 tree), 0.622 (20), 0.645 (50), 0.653 (100), 0.655 (200), then 0.240 at 400 trees with validation log loss 3.86 (minimum at 244 trees). So the instability is real, early stopping on validation is needed, and the class-weight gain (+0.075 macro F1) holds under these settings. Whether a smaller learning rate or stronger regularisation would stabilise the unweighted model and shrink the gap was not tested.
+
 ## Files
 
-Notebooks: `unsw-nb15-preprocessing`, `unsw-nb15-baseline`, `unsw-nb15-gnn`, `unsw-nb15-design-controls`, `unsw-nb15-ttl-ablation`, `unsw-nb15-class-merge-check`, `unsw-nb15-gnn-density`, `unsw-nb15-gnn-weights`, `unsw-nb15-egraphsage`, `unsw-nb15-graph-features`, `unsw-nb15-bootstrap`, and the earlier `unsw-nb15-gnn-vs-tabular` and `unsw-nb15-gnn-ablation` (the latter superseded by `gnn-density`). Notebooks are in `Our_Work/notebooks/`, grouped into `01_preprocessing`, `02_tabular_models`, `03_graph_models` and `04_evaluation` (the two earlier ones in `superseded/`). Figures and per-run CSVs are in the matching `*_figures/` folders under `Our_Work/figures/`. The Word report and the literature comparison are in `Our_Work/documents/` (`UNSW-NB15-Report.docx`, `UNSW-NB15-Literature-Comparison.docx`).
+Notebooks: `unsw-nb15-preprocessing`, `unsw-nb15-baseline`, `unsw-nb15-gnn`, `unsw-nb15-design-controls`, `unsw-nb15-ttl-ablation`, `unsw-nb15-class-merge-check`, `unsw-nb15-gnn-density`, `unsw-nb15-gnn-weights`, `unsw-nb15-egraphsage`, `unsw-nb15-graph-features`, `unsw-nb15-bootstrap`, `unsw-nb15-paper-split-replication`, `unsw-nb15-paper-split-improved`, `unsw-nb15-plain-lightgbm-check`, and the earlier `unsw-nb15-gnn-vs-tabular` and `unsw-nb15-gnn-ablation` (the latter superseded by `gnn-density`). Notebooks are in `Our_Work/notebooks/`, grouped into `01_preprocessing`, `02_tabular_models`, `03_graph_models`, `04_evaluation` and `05_paper_replication` (the two earlier ones in `superseded/`). Figures and per-run CSVs are in the matching `*_figures/` folders under `Our_Work/figures/`. The Word report and the literature comparison are in `Our_Work/documents/` (`UNSW-NB15-Report.docx`, `UNSW-NB15-Literature-Comparison.docx`).

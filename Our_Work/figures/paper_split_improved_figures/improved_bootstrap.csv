@@ -1,0 +1,7 @@
+,weighted F1,macro F1
+"LightGBM, plain",0.9802 (0.9798 to 0.9805),0.5804 (0.5717 to 0.5896)
+"LightGBM, class weights",0.9815 (0.9813 to 0.9818),0.6559 (0.6447 to 0.6668)
+"LightGBM, two-stage, class weights",0.9822 (0.9819 to 0.9824),0.6543 (0.6432 to 0.6649)
+"LightGBM, class weights + tuned class scales",0.9834 (0.9831 to 0.9837),0.6676 (0.6564 to 0.6782)
+"GNN, graph",0.9804 (0.9801 to 0.9807),0.6118 (0.6024 to 0.6226)
+"GNN, no graph",0.9809 (0.9806 to 0.9812),0.6215 (0.6117 to 0.6316)
