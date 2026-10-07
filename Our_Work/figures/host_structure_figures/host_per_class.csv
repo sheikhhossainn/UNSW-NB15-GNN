@@ -1,0 +1,11 @@
+,flows,source_ips,destination_ips
+Analysis,299,2,2
+Backdoor,297,4,10
+DoS,823,4,10
+Exploits,4040,4,10
+Fuzzers,3989,4,10
+Generic,1973,4,10
+Normal,624483,40,44
+Reconnaissance,1740,4,10
+Shellcode,223,4,10
+Worms,24,4,10

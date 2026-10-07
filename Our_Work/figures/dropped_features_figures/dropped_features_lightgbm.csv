@@ -1,0 +1,4 @@
+,Analysis,Backdoor,DoS,Exploits,Fuzzers,Generic,Normal,Reconnaissance,Shellcode,Worms,macro F1,weighted F1,trees
+features we kept,0.096,0.018,0.181,0.791,0.717,0.89,0.998,0.907,0.805,0.0,0.54,0.9922,147.0
+kept + dropped columns,0.103,0.044,0.151,0.793,0.711,0.893,0.998,0.912,0.786,0.2,0.559,0.992,127.0
+"kept + dropped, without TCP sequence numbers",0.102,0.044,0.16,0.793,0.708,0.895,0.998,0.903,0.789,0.2,0.559,0.992,136.0

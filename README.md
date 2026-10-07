@@ -23,6 +23,8 @@ These are observations from one dataset and one split. The full evidence and the
 | On a 5:2:3 split like the GTCN-G paper's, every model we trained scores a weighted F1 of 0.980 to 0.984, above the 0.9512 that paper reports | Not like-for-like: the paper leaves out its preprocessing, split type and loss, its data has 700,001 flows against our 2,042,340, and our version of its E-GraphSAGE-M baseline scores 0.981 where it reports 0.8934. A tree model without a graph is among those above 0.9512 |
 | The paper's data is the first raw file, UNSW-NB15_1.csv (700,001 flows, same class mix as its Table II). On it our E-GraphSAGE-M style baseline scores weighted F1 0.993 (paper: 0.8934); predicting Normal for every flow would score about 0.953 on the paper's class mix, above the 0.9512 it reports for GTCN-G | Our subset removes duplicates and has 97.9% Normal; the paper's split, preprocessing and loss are not stated; the 0.953 assumes its test set has about its class mix |
 | Our GTCN-G style model on that data scores 0.9925 weighted F1, no better than the simple network (0.9928). Without the residual branch (the flow's own features) macro F1 drops by 0.11; attention, temporal and graph-convolution branches show no measurable effect; real neighbours add about 0.001 weighted F1 over isolated flows | Our own implementation with simplifications, not the authors' model; 3 seeds; paired bootstrap on seed 42 |
+| On the paper's data the scores stop because of the data: dropped raw columns, IP addresses and time order do not separate Analysis, Backdoor and DoS from the classes they overlap with, and the data has only 40 source and 44 destination IPs | Dropped-column check: one seed; IP and time checks: the paper's subset only |
+| Conformal sets over the attack classes: one label is right for 20% to 35% of detected Analysis, Backdoor and DoS flows, while sets of about 2.3 to 2.7 of the 9 attack classes hold the true class for 83% to 92% of them (target 90%); no more efficient than a fixed top-3 | 3 seeds, calibration sets of about 60 flows for Analysis and Backdoor, Backdoor below target (0.83); the sets add a coverage statement, not information |
 | Class weights and a logit-adjusted loss did not raise macro F1 for that model. 81% of Analysis and 85% of Backdoor flows have an identical-feature twin of another class, which caps their F1 at about 0.38 and 0.37 in sample | Our models reach about 0.2 on both, so the overlap explains part of the shortfall, not all of it; loss changes: 3 seeds |
 | On the 5:2:3 split the best macro F1 is 0.667 (class-weighted LightGBM with class scales tuned on validation); the graph again did not help | Graph minus no graph -0.010 macro F1 (-0.018 to -0.002); two-stage design no gain here (-0.002) |
 | Weighted F1 was 0.978 to 0.9825 for the paper-style GNN conditions and the best LightGBM model, so it cannot tell them apart | Macro F1 ranges from 0.51 to 0.67 |
@@ -34,7 +36,7 @@ README.md
 LICENSE
 .gitignore
 Our_Work/
-  notebooks/              18 notebooks that produce the results, grouped by purpose
+  notebooks/              21 notebooks that produce the results, grouped by purpose
     01_preprocessing/     data cleaning and export
     02_tabular_models/    baselines and the LightGBM experiments
     03_graph_models/      the GNN experiments and graph features for LightGBM
@@ -94,6 +96,9 @@ Uses a 5:2:3 stratified random split (train/validation/test) built from the same
 | `unsw-nb15-raw-rowcount-check.ipynb` | Rows, duplicates and class shares of the four raw UNSW-NB15 files, to identify which file matches the paper's Table I and II (the first one does). |
 | `unsw-nb15-paper-subset-replication.ipynb` | Notebook A's baseline again, on the flows of the first raw file only (637,891 flows after duplicate removal), 3 seeds. |
 | `unsw-nb15-gtcng-style-model.ipynb` | Our implementation of GTCN-G's main parts (line graph, 6-head attention, residual branch, gated temporal convolution, graph convolution) on that subset, with one-part-off ablations, isolated flows and shuffled neighbours, 3 seeds. The documented results were run in two kernels (first four and last three conditions). |
+| `unsw-nb15-dropped-features-check.ipynb` | Whether the raw columns our preprocessing dropped (state, loss counts, window, TCP sequence numbers, round-trip time, flags, source port) separate the overlapping classes: twin shares and class-weighted LightGBM with and without them, on the paper's file. |
+| `unsw-nb15-host-structure-check.ipynb` | Hosts and graph density of the paper's subset, whether the IP pair separates flows with identical features, and whether the previous flow of the same source has the same label. |
+| `unsw-nb15-conformal-sets.ipynb` | Class-conditional conformal sets of classes, one set over all 10 classes and a two-stage design (detect attacks, then a set over the 9 attack classes), with a top-k comparison, 3 seeds. |
 | `unsw-nb15-gtcng-minority-classes.ipynb` | The same model with plain, square-root-weighted, balanced-weighted and logit-adjusted losses, each decoded with and without class scales tuned on validation, 3 seeds. |
 
 #### `superseded/`
@@ -130,6 +135,8 @@ Each folder holds the charts (`fig_NN.png`) and per-run CSVs saved by the notebo
 | `paper_split_improved_figures/` | paper-split-improved | `fig_01.png`, `fig_02.png` GNN curves; `fig_03.png` weighted and macro F1 of every condition; `fig_04.png` per-class F1 heatmap; run, summary, bootstrap and paired-difference CSVs. |
 | `paper_subset_figures/` | paper-subset-replication | `fig_01.png` to `fig_04.png` as for the paper-split baseline; run, summary, history and per-class CSVs; `overlap_ceiling.csv` share of each class with an identical-feature twin of another class, the best possible F1 of any rule on these features and the F1 of the most-common-label rule (both in sample). |
 | `gtcng_style_figures/` | gtcng-style-model | `fig_01.png` training and validation loss of the full model; `fig_02.png` weighted and macro F1 of every condition; run, summary, history and per-class CSVs; `bootstrap_paired_differences.csv` paired bootstrap intervals (seed 42) for the ablations and the loss comparisons. |
+| `conformal_figures/` | conformal-sets | `fig_01.png`, `fig_02.png` design 1 (coverage, set size, composition); `fig_03.png`, `fig_04.png` design 2; run, summary and composition CSVs for both designs, `conformal_one_label_recall.csv`. |
+| `host_structure_figures/`, `dropped_features_figures/` | host-structure-check, dropped-features-check | CSV tables only (graph density, hosts per class, IP-pair disambiguation, time order; twin shares and LightGBM with the dropped columns). |
 | `gtcng_minority_figures/` | gtcng-minority-classes | `fig_01.png` weighted and macro F1 by loss and decoding; `fig_02.png` per-class F1 heatmap; run, summary, history and per-class CSVs. |
 | `bootstrap_figures/` | bootstrap | `fig_01.png` every condition with its interval; `fig_02.png` paired differences; `bootstrap_scores.csv`, `bootstrap_differences.csv`. |
 | `gnn_ablation_figures/`, `gnn_vs_tabular_figures/` | superseded notebooks | Figures and CSVs of the two earlier analyses. |

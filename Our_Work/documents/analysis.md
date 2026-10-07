@@ -1,21 +1,21 @@
 # UNSW-NB15 Project: Analysis and Trial Log
 
-A record of what we tried, what we observed, and why each next step followed. Everything was run on Kaggle and every notebook is in this folder. Results are macro F1 on one fixed held-out test set (408,468 flows, 10 classes). "±" is the standard deviation over training seeds. "95% CI" is a bootstrap interval over the test flows (1,000 resamples, notebook `unsw-nb15-bootstrap`); it reflects test-set sampling noise, not a different train/test split. Where we draw a reading from a result, we say how far we think it goes.
+A record of what we tried, what we observed, and why each next step followed. Everything was run on Kaggle and every notebook is in this folder. Results are macro F1 on one fixed held-out test set (408,468 flows, 10 classes). "+/-" is the standard deviation over training seeds. "95% CI" is a bootstrap interval over the test flows (1,000 resamples, notebook `unsw-nb15-bootstrap`); it reflects test-set sampling noise, not a different train/test split. Where we draw a reading from a result, we say how far we think it goes.
 
 ## Results at a glance
 
 | Model | Macro F1 | 95% CI |
 |---|---|---|
-| Two-stage LightGBM, original data, balanced class weights | 0.670 (± 0.004) | 0.658 - 0.679 |
-| Single-stage LightGBM, original data, balanced class weights | 0.658 (± 0.002) | 0.646 - 0.669 |
-| Two-stage LightGBM, original data + SMOTE rows | 0.654 (± 0.002) | 0.641 - 0.667 |
-| Single-stage LightGBM, original data + SMOTE rows | 0.648 (± 0.001) | 0.634 - 0.659 |
-| Two-stage LightGBM without the 3 TTL features | 0.653 (± 0.003) | |
-| Single-stage LightGBM, no class weights (like the first baseline) | 0.582 (± 0.004) | 0.573 - 0.591 |
-| Two-stage LightGBM + graph features | 0.671 (± 0.007) | |
-| GNN (E-GraphSAGE), matched graph density | 0.585 (± 0.010) | 0.576 - 0.595 |
-| Same GNN, graph switched off | 0.569 (± 0.015) | 0.556 - 0.581 |
-| Same GNN, shuffled edges | 0.562 (± 0.016) | 0.552 - 0.571 |
+| Two-stage LightGBM, original data, balanced class weights | 0.670 (+/- 0.004) | 0.658 - 0.679 |
+| Single-stage LightGBM, original data, balanced class weights | 0.658 (+/- 0.002) | 0.646 - 0.669 |
+| Two-stage LightGBM, original data + SMOTE rows | 0.654 (+/- 0.002) | 0.641 - 0.667 |
+| Single-stage LightGBM, original data + SMOTE rows | 0.648 (+/- 0.001) | 0.634 - 0.659 |
+| Two-stage LightGBM without the 3 TTL features | 0.653 (+/- 0.003) | |
+| Single-stage LightGBM, no class weights (like the first baseline) | 0.582 (+/- 0.004) | 0.573 - 0.591 |
+| Two-stage LightGBM + graph features | 0.671 (+/- 0.007) | |
+| GNN (E-GraphSAGE), matched graph density | 0.585 (+/- 0.010) | 0.576 - 0.595 |
+| Same GNN, graph switched off | 0.569 (+/- 0.015) | 0.556 - 0.581 |
+| Same GNN, shuffled edges | 0.562 (+/- 0.016) | 0.552 - 0.571 |
 
 On the 5:2:3 split of the GTCN-G paper (section 12, a different split from the table above) every model we trained, including LightGBM without class weights, scored a weighted F1 of 0.980 to 0.984 against 0.9512 reported for GTCN-G; this is not a like-for-like comparison. The best macro F1 there was 0.667 (class-weighted LightGBM with tuned class scales).
 
@@ -31,7 +31,7 @@ What the evidence suggests (details and caveats in the sections below):
 We loaded the 4 raw CSVs, ran EDA, removed duplicates (2,540,047 to 2,042,340 rows), made a stratified 80/20 split, cleaned and selected features (fit on train only), transformed, and exported. Outputs: `train.parquet`, `test.parquet` (original balance), `train_smote.parquet`, `train_graph.csv` / `test_graph.csv` (endpoints), `preprocessing.pkl`.
 
 - **Leakage control:** every learned value (medians, rare levels, feature ranking, scaler, SMOTE) is fit on train only; test missing values use the train median; duplicates are removed before the split.
-- **Features:** we dropped IP addresses, sequence numbers, timestamps and the binary `Label`. We dropped redundant columns by measured correlation: `dwin`/`swin`, `dloss`/`dbytes`, `dloss`/`Dpkts` (≥ 0.99), `sloss` (0.960 with `sbytes`; first described as ≥ 0.99 and corrected), `tcprtt` (sum of `synack` and `ackdat`), `ct_ftp_cmd`, one near-constant column, and `state`, `is_ftp_login` (bottom quartile on all four rankings). 41 columns became 33; after one-hot encoding the models see 45 features. A model on the 33 selected features scored 0.5954 validation macro F1 against 0.5924 for all candidates.
+- **Features:** we dropped IP addresses, sequence numbers, timestamps and the binary `Label`. We dropped redundant columns by measured correlation: `dwin`/`swin`, `dloss`/`dbytes`, `dloss`/`Dpkts` (>= 0.99), `sloss` (0.960 with `sbytes`; first described as >= 0.99 and corrected), `tcprtt` (sum of `synack` and `ackdat`), `ct_ftp_cmd`, one near-constant column, and `state`, `is_ftp_login` (bottom quartile on all four rankings). 41 columns became 33; after one-hot encoding the models see 45 features. A model on the 33 selected features scored 0.5954 validation macro F1 against 0.5924 for all candidates.
 - Skewed columns: `log1p` then standardise; other numeric columns standardised; source port in 4 bins; rare levels (< 0.5%) merged into `Other`.
 - Shapes: train (1,633,872, 45), test (408,468, 45), train_smote (1,645,669, 45). The first 1,633,872 rows of `train_smote` are exactly `train.parquet`, followed by 11,797 synthetic rows.
 
@@ -57,11 +57,11 @@ We replaced SMOTENC with BorderlineSMOTE and a 5x cap. Macro F1 was identical to
 
 | Variant | macro F1 | 95% CI |
 |---|---|---|
-| single-stage, unweighted | 0.582 ± 0.004 | 0.573 - 0.591 |
-| single-stage, weighted | 0.658 ± 0.002 | 0.646 - 0.669 |
-| two-stage, weighted | 0.670 ± 0.004 | 0.658 - 0.679 |
-| single-stage, weighted, + SMOTE rows | 0.648 ± 0.001 | 0.634 - 0.659 |
-| two-stage, weighted, + SMOTE rows | 0.654 ± 0.002 | 0.641 - 0.667 |
+| single-stage, unweighted | 0.582 +/- 0.004 | 0.573 - 0.591 |
+| single-stage, weighted | 0.658 +/- 0.002 | 0.646 - 0.669 |
+| two-stage, weighted | 0.670 +/- 0.004 | 0.658 - 0.679 |
+| single-stage, weighted, + SMOTE rows | 0.648 +/- 0.001 | 0.634 - 0.659 |
+| two-stage, weighted, + SMOTE rows | 0.654 +/- 0.002 | 0.641 - 0.667 |
 
 Paired differences (95% bootstrap CI):
 - Class weights, single-stage: +0.076 (+0.065 to +0.087).
@@ -81,8 +81,8 @@ In these runs, class weighting seems to account for most of the gap we first att
 
 | Features | macro F1 | excluding Normal |
 |---|---|---|
-| all 45 | 0.6695 ± 0.0036 | 0.6335 |
-| without the 3 TTL features | 0.6526 ± 0.0030 | 0.6148 |
+| all 45 | 0.6695 +/- 0.0036 | 0.6335 |
+| without the 3 TTL features | 0.6526 +/- 0.0030 | 0.6148 |
 
 The drop is about 0.017, the largest per-class drops being DoS -0.04, Worms -0.08 (34 rows) and Exploits -0.014. The model still works without them, but part of its score depends on them, so we think both numbers should be reported. (An earlier run on the oversampled data gave 0.653 vs 0.632.)
 
@@ -100,10 +100,10 @@ Per-class F1 of the best tabular model: Normal 0.993, Generic 0.930, Shellcode 0
 
 | Condition | test macro F1 | validation macro F1 |
 |---|---|---|
-| no graph (flow features only) | 0.569 ± 0.015 | 0.576 |
-| shuffled edges, matched density | 0.562 ± 0.016 | 0.567 |
-| real graph, dense (full) train graph | 0.579 ± 0.009 | 0.588 |
-| real graph, matched density | 0.585 ± 0.010 | 0.594 |
+| no graph (flow features only) | 0.569 +/- 0.015 | 0.576 |
+| shuffled edges, matched density | 0.562 +/- 0.016 | 0.567 |
+| real graph, dense (full) train graph | 0.579 +/- 0.009 | 0.588 |
+| real graph, matched density | 0.585 +/- 0.010 | 0.594 |
 
 - Real graph vs no graph (matched density): +0.017 (CI +0.008 to +0.024), positive in all 5 seeds on test (+0.010, +0.025, +0.004, +0.020, +0.024) and on validation; +0.010 without Worms. Real graph vs shuffled edges: +0.024 (CI +0.018 to +0.029).
 - Matched density vs the dense train graph: +0.006 (CI +0.001 to +0.013), no difference without Worms. The earlier 3-seed comparison (+0.009, one negative seed, dense graph) was in hindsight too small a test to be conclusive.
@@ -124,10 +124,10 @@ GNN per-class F1 (matched density, mean of 5 seeds): Normal 0.992, Generic 0.878
 
 | Condition | macro F1, plain loss | macro F1, sqrt class weights | weighted F1 (both ~) |
 |---|---|---|---|
-| no graph | 0.523 ± 0.001 | 0.600 ± 0.004 | 0.981 / 0.980 |
-| real graph, full train graph | 0.528 ± 0.006 | 0.594 ± 0.008 | 0.981 / 0.980 |
-| real graph, matched density | 0.514 ± 0.007 | 0.592 ± 0.010 | 0.981 / 0.979 |
-| shuffled edges, matched density | 0.511 ± 0.006 | 0.564 ± 0.019 | 0.980 / 0.978 |
+| no graph | 0.523 +/- 0.001 | 0.600 +/- 0.004 | 0.981 / 0.980 |
+| real graph, full train graph | 0.528 +/- 0.006 | 0.594 +/- 0.008 | 0.981 / 0.980 |
+| real graph, matched density | 0.514 +/- 0.007 | 0.592 +/- 0.010 | 0.981 / 0.979 |
+| shuffled edges, matched density | 0.511 +/- 0.006 | 0.564 +/- 0.019 | 0.980 / 0.978 |
 | two-stage LightGBM (for reference) | 0.670 | 0.670 | 0.9825 |
 
 - **Real graph vs no graph.** We saw no gain in this design. With class weights, matched density minus no graph is -0.008 (95% CI -0.016 to -0.001; -0.003 without Worms, CI -0.008 to +0.001); with the plain loss it is -0.010 (CI -0.014 to -0.005). The full (denser) train graph minus no graph is -0.006 (CI -0.014 to +0.001) with weights and +0.005 (CI -0.001 to +0.009) without. Section 7 found +0.017 for a network whose classifier also receives the flow's own features and uses sampled neighbours. We did not test which of these differences matters.
@@ -144,9 +144,9 @@ Our reading: with this recipe and training budget the real neighbours did not he
 
 | Condition | macro F1 |
 |---|---|
-| flow features only (45) | 0.6695 ± 0.0036 |
-| + graph features | 0.6709 ± 0.0069 |
-| + graph features, shuffled edges | 0.6649 ± 0.0058 |
+| flow features only (45) | 0.6695 +/- 0.0036 |
+| + graph features | 0.6709 +/- 0.0069 |
+| + graph features, shuffled edges | 0.6649 +/- 0.0058 |
 
 Real minus flow-only: -0.005, +0.003, +0.006 (mean +0.001), so we saw no measurable benefit. Real minus shuffled: +0.007, +0.002, +0.009. In our experiments the graph helped the neural network a little and the tree model not at all.
 
@@ -176,9 +176,9 @@ E-GraphSAGE-M style: two layers, mean aggregation over 8 sampled neighbours per 
 
 | Test score | after epoch 10 | at best validation epoch |
 |---|---|---|
-| weighted F1 | 0.9808 ± 0.0009 | 0.9836 ± 0.0002 |
-| macro F1 | 0.536 ± 0.001 | 0.581 ± 0.002 |
-| accuracy | 0.9828 ± 0.0004 | 0.9839 ± 0.0001 |
+| weighted F1 | 0.9808 +/- 0.0009 | 0.9836 +/- 0.0002 |
+| macro F1 | 0.536 +/- 0.001 | 0.581 +/- 0.002 |
+| accuracy | 0.9828 +/- 0.0004 | 0.9839 +/- 0.0001 |
 
 Per-class F1 at the best epoch: Normal 0.996, Generic 0.896, Shellcode 0.866, Reconnaissance 0.853, Exploits 0.807, Fuzzers 0.588, Worms 0.278, DoS 0.274, Backdoor 0.243, Analysis 0.008. The curves are still changing at epoch 10 and settle after roughly epoch 40. Our weighted F1 (0.981 to 0.984) is far above the 0.8934 the paper reports for E-GraphSAGE-M; we do not know why (preprocessing, split type, loss and learning rate may all differ).
 
@@ -188,12 +188,12 @@ LightGBM in four versions (leaves chosen on validation: 31; early stopping on va
 
 | Condition | weighted F1 | macro F1 | 95% CI macro F1 (seed 42) |
 |---|---|---|---|
-| LightGBM, plain | 0.9802 ± 0.0002 | 0.581 ± 0.003 | 0.572 - 0.590 |
-| LightGBM, class weights | 0.9815 ± 0.0003 | 0.655 ± 0.001 | 0.645 - 0.667 |
-| LightGBM, two-stage, class weights | 0.9820 ± 0.0005 | 0.655 ± 0.001 | 0.643 - 0.665 |
-| LightGBM, class weights + tuned class scales | 0.9831 ± 0.0005 | 0.667 ± 0.002 | 0.656 - 0.678 |
-| GNN, graph | 0.9804 ± 0.0000 | 0.610 ± 0.003 | 0.602 - 0.623 |
-| GNN, no graph | 0.9809 ± 0.0001 | 0.623 ± 0.003 | 0.612 - 0.632 |
+| LightGBM, plain | 0.9802 +/- 0.0002 | 0.581 +/- 0.003 | 0.572 - 0.590 |
+| LightGBM, class weights | 0.9815 +/- 0.0003 | 0.655 +/- 0.001 | 0.645 - 0.667 |
+| LightGBM, two-stage, class weights | 0.9820 +/- 0.0005 | 0.655 +/- 0.001 | 0.643 - 0.665 |
+| LightGBM, class weights + tuned class scales | 0.9831 +/- 0.0005 | 0.667 +/- 0.002 | 0.656 - 0.678 |
+| GNN, graph | 0.9804 +/- 0.0000 | 0.610 +/- 0.003 | 0.602 - 0.623 |
+| GNN, no graph | 0.9809 +/- 0.0001 | 0.623 +/- 0.003 | 0.612 - 0.632 |
 
 Paired differences (bootstrap, same test rows, seed-42 predictions), weighted F1 / macro F1:
 
@@ -228,7 +228,7 @@ Weighted F1 of a model that predicts Normal for every flow is p times 2p/(1+p), 
 
 ### 13.2 Baseline on the paper's data (`unsw-nb15-paper-subset-replication`, GPU, 3 seeds)
 
-Same E-GraphSAGE-M style network as 12.1. Weighted F1 0.9921 ± 0.0002 after epoch 10 and 0.9928 ± 0.0002 at the best validation epoch (33, 76, 39); macro F1 0.535 ± 0.018 and 0.562 ± 0.008. The paper reports 0.8934 for this baseline, so using the paper's data did not close the gap. Per-class F1 at the best epoch: Normal 0.999, Reconnaissance 0.887, Generic 0.857, Exploits 0.781, Shellcode 0.771, Fuzzers 0.725, Analysis 0.276, Backdoor 0.177, DoS 0.148, Worms 0.000 (24 flows in the whole subset).
+Same E-GraphSAGE-M style network as 12.1. Weighted F1 0.9921 +/- 0.0002 after epoch 10 and 0.9928 +/- 0.0002 at the best validation epoch (33, 76, 39); macro F1 0.535 +/- 0.018 and 0.562 +/- 0.008. The paper reports 0.8934 for this baseline, so using the paper's data did not close the gap. Per-class F1 at the best epoch: Normal 0.999, Reconnaissance 0.887, Generic 0.857, Exploits 0.781, Shellcode 0.771, Fuzzers 0.725, Analysis 0.276, Backdoor 0.177, DoS 0.148, Worms 0.000 (24 flows in the whole subset).
 
 ### 13.3 A GTCN-G style model with ablations (`unsw-nb15-gtcng-style-model`, GPU, 3 seeds)
 
@@ -236,14 +236,14 @@ The paper has no code, so we implemented the parts it describes: flows as nodes 
 
 | Condition | weighted F1 | macro F1 |
 |---|---|---|
-| Baseline network (13.2) | 0.9928 ± 0.0002 | 0.562 ± 0.008 |
-| Full | 0.9925 ± 0.0001 | 0.550 ± 0.004 |
-| No residual branch | 0.9899 ± 0.0004 | 0.439 ± 0.009 |
-| Mean instead of attention | 0.9925 ± 0.0002 | 0.558 ± 0.006 |
-| No temporal branch | 0.9925 ± 0.0001 | 0.542 ± 0.006 |
-| No graph convolution branch | 0.9925 ± 0.0001 | 0.549 ± 0.018 |
-| Isolated flows | 0.9916 ± 0.0003 | 0.535 ± 0.008 |
-| Shuffled neighbours | 0.9917 ± 0.0002 | 0.542 ± 0.004 |
+| Baseline network (13.2) | 0.9928 +/- 0.0002 | 0.562 +/- 0.008 |
+| Full | 0.9925 +/- 0.0001 | 0.550 +/- 0.004 |
+| No residual branch | 0.9899 +/- 0.0004 | 0.439 +/- 0.009 |
+| Mean instead of attention | 0.9925 +/- 0.0002 | 0.558 +/- 0.006 |
+| No temporal branch | 0.9925 +/- 0.0001 | 0.542 +/- 0.006 |
+| No graph convolution branch | 0.9925 +/- 0.0001 | 0.549 +/- 0.018 |
+| Isolated flows | 0.9916 +/- 0.0003 | 0.535 +/- 0.008 |
+| Shuffled neighbours | 0.9917 +/- 0.0002 | 0.542 +/- 0.004 |
 
 Paired differences (bootstrap, seed-42 predictions), weighted F1 / macro F1:
 - Full minus baseline network: -0.0002 (-0.0004 to 0.0000) / -0.005 (-0.020 to +0.009).
@@ -262,14 +262,14 @@ The full model of 13.3 with four losses, each decoded by the largest probability
 
 | Loss | Decoding | weighted F1 | macro F1 | Analysis | Backdoor | DoS |
 |---|---|---|---|---|---|---|
-| Plain | largest probability | 0.9923 ± 0.0007 | 0.554 ± 0.018 | 0.22 | 0.22 | 0.14 |
-| Plain | tuned class scales | 0.9922 ± 0.0009 | 0.558 ± 0.037 | 0.23 | 0.25 | 0.17 |
-| Square-root weights | largest probability | 0.9910 ± 0.0001 | 0.559 ± 0.005 | 0.23 | 0.22 | 0.20 |
-| Square-root weights | tuned class scales | 0.9919 ± 0.0004 | 0.567 ± 0.001 | 0.23 | 0.20 | 0.26 |
-| Balanced weights | largest probability | 0.9905 ± 0.0002 | 0.549 ± 0.007 | 0.25 | 0.21 | 0.24 |
-| Balanced weights | tuned class scales | 0.9908 ± 0.0001 | 0.558 ± 0.006 | 0.23 | 0.23 | 0.23 |
-| Logit-adjusted | largest probability | 0.9905 ± 0.0002 | 0.555 ± 0.008 | 0.26 | 0.16 | 0.24 |
-| Logit-adjusted | tuned class scales | 0.9906 ± 0.0001 | 0.560 ± 0.004 | 0.22 | 0.22 | 0.25 |
+| Plain | largest probability | 0.9923 +/- 0.0007 | 0.554 +/- 0.018 | 0.22 | 0.22 | 0.14 |
+| Plain | tuned class scales | 0.9922 +/- 0.0009 | 0.558 +/- 0.037 | 0.23 | 0.25 | 0.17 |
+| Square-root weights | largest probability | 0.9910 +/- 0.0001 | 0.559 +/- 0.005 | 0.23 | 0.22 | 0.20 |
+| Square-root weights | tuned class scales | 0.9919 +/- 0.0004 | 0.567 +/- 0.001 | 0.23 | 0.20 | 0.26 |
+| Balanced weights | largest probability | 0.9905 +/- 0.0002 | 0.549 +/- 0.007 | 0.25 | 0.21 | 0.24 |
+| Balanced weights | tuned class scales | 0.9908 +/- 0.0001 | 0.558 +/- 0.006 | 0.23 | 0.23 | 0.23 |
+| Logit-adjusted | largest probability | 0.9905 +/- 0.0002 | 0.555 +/- 0.008 | 0.26 | 0.16 | 0.24 |
+| Logit-adjusted | tuned class scales | 0.9906 +/- 0.0001 | 0.560 +/- 0.004 | 0.22 | 0.22 | 0.25 |
 
 Paired differences from plain with largest-probability decoding (seed 42), weighted F1 / macro F1: square-root weights -0.0017 / -0.019 (-0.033 to -0.005); balanced weights -0.0025 / -0.030 (-0.045 to -0.014); logit-adjusted -0.0024 / -0.019 (-0.036 to -0.003); square-root weights with tuned scales -0.0005 / -0.006 (-0.021 to +0.007); plain with tuned scales -0.0002 / +0.012 (+0.001 to +0.024). No loss change raised macro F1 beyond the noise of the seeds (the largest mean gain is 0.013 against a seed standard deviation of 0.018 for the plain loss); only DoS improved clearly. This differs from LightGBM on all our data (class weights +0.075 macro F1, section 12.2); we did not test why.
 
@@ -280,3 +280,48 @@ Share of each class's flows (after duplicate removal) that have an identical-fea
 ### 13.6 Limits of section 13
 
 The paper's file is inferred from row count and class mix; duplicates were removed here and probably not in the paper (a run with duplicates kept was not done); the paper's split, loss and optimizer are not stated; the GTCN-G style model is our own implementation with simplifications; 3 seeds, and the bootstrap intervals use the seed-42 predictions only; Worms has 24 flows in the subset and its F1 is not reliable; the binary task was not run; the comparison with predicting Normal assumes the paper's test set has about its class mix.
+
+## 14. Why the scores stop, and prediction with sets of classes
+
+Section 13 left two questions: why nothing we tried moves macro F1 on the paper's data, and whether anything can be done about the classes that overlap. All runs use the flows of UNSW-NB15_1.csv (637,891 after duplicate removal, stratified 5:2:3 split as in section 13).
+
+### 14.1 Where the ceiling comes from
+
+- **Macro F1 is set by four small classes.** Worms (24 flows), Backdoor (297), Analysis (299) and DoS (823) are 0.23% of the flows. Six classes score about 0.72 to 0.999; these four score about 0.0 to 0.28, which gives a macro F1 near 0.55.
+- **The raw columns we dropped do not separate them** (`unsw-nb15-dropped-features-check`, `dropped_features_figures/`). Adding state, loss counts, window, TCP sequence numbers, round-trip time, flag columns and source port to the 32 raw columns we kept leaves the share of flows with an identical-feature twin of another class unchanged for Analysis (80.6%), Backdoor (84.5%) and DoS (33.8%). Class-weighted LightGBM macro F1 changes from 0.540 to 0.559, with Analysis F1 0.10 and Backdoor F1 0.02 to 0.04 in both cases (one seed).
+- **IP addresses do not separate them** (`unsw-nb15-host-structure-check`, `host_structure_figures/`). Among the 1,445 flows that share identical features with a flow of another class, predicting the most common label of the group is right for 24.0% of them; adding the (source IP, destination IP) pair to the group raises that to 24.7%.
+- **The hosts are few.** The subset has 40 source and 44 destination IP addresses, and every attack class comes from 4 sources (Analysis from 2) to at most 10 destinations. A graph on (IP, port) endpoints has 589,428 nodes of which 67% carry a single flow; a graph on IP addresses has 45 nodes with a median of 4,446 flows each. Neither structure carries class information, which fits the 0.001 weighted F1 that neighbours added in section 13.3.
+- **Time order does not help either.** The share of flows whose previous flow from the same source has the same label is 0.3% for Backdoor, 2.2% for Shellcode, 5.1% for DoS, 12.7% for Analysis and 17.0% for Reconnaissance, against 99.8% for Normal.
+- **A loss change moves the decision boundary but cannot add information** (section 13.4): none raised macro F1 beyond the noise of the seeds.
+- **The in-sample ceiling** for any rule on these features is F1 0.383 for Analysis and 0.374 for Backdoor (section 13.5). Our models reach about 0.2, so the overlap explains part of the shortfall, not all of it.
+
+### 14.2 Sets of classes instead of one label (`unsw-nb15-conformal-sets`, CPU, 3 seeds)
+
+Class-conditional (Mondrian) conformal prediction: for every flow the model returns a set of classes, built on the validation set so that the true class of a flow of class c is in the set with probability at least 1 - alpha, for each class separately. LightGBM is trained on 85% of the training flows (15% for early stopping); the validation flows (127,578) are the calibration set; the test flows (191,368) are used once. The seeds change the model only; the calibration and test sets are fixed. Scores are 1 minus the probability of the true class; the threshold of class c is the ceil((n+1)(1-alpha))-th smallest of its n calibration scores.
+
+**Design 1, one set over all 10 classes** (class-weighted LightGBM, 114 to 146 trees). Coverage is close to the target for the classes with enough flows (alpha 0.10: Analysis 0.888, Backdoor 0.869, DoS 0.892, Exploits 0.888, Fuzzers 0.897; target 0.90), but the sets are not useful: the mean set size is at least 2.0 for every class, Normal included, and almost no set holds one class. Each rare class's threshold lets the class in for many flows that have even a small probability for it. The unweighted LightGBM stopped after 1 tree (section 12.3) and gave sets of 4 to 8 classes, so it was left out.
+
+**Design 2, detect attacks, then a set over the attack classes.** Stage 1 is a class-weighted binary LightGBM (150 to 399 trees) with a threshold that detects each attack class with at least 0.95 probability (the largest class-wise threshold, over classes with at least 19 calibration flows). Stage 2 is a class-weighted 9-class LightGBM trained on attack flows only (45 to 56 trees), with Mondrian sets calibrated on the validation attack flows that stage 1 flags. Worms has 5 calibration flows, too few for any guarantee, so it is not part of the guarantees (it enters a set only as the most probable class; test coverage 0.286 from 7 flows). The false alarm rate on Normal flows is 0.4% to 0.5%. Mean over 3 seeds, test set:
+
+| Class | test flows | detected | one label (top 1) | top 2 | top 3 | set size, alpha 0.10 | coverage, alpha 0.10 | set size, alpha 0.05 | coverage, alpha 0.05 |
+|---|---|---|---|---|---|---|---|---|---|
+| Analysis | 89 | 0.925 | 0.352 | 0.736 | 0.975 | 2.63 | 0.887 | 3.54 | 0.947 |
+| Backdoor | 89 | 0.993 | 0.200 | 0.509 | 0.860 | 2.69 | 0.830 | 3.55 | 0.879 |
+| DoS | 247 | 0.989 | 0.248 | 0.667 | 0.981 | 2.28 | 0.916 | 2.90 | 0.956 |
+| Exploits | 1,212 | 0.999 | 0.755 | 0.890 | 0.919 | 1.85 | 0.883 | 2.30 | 0.939 |
+| Fuzzers | 1,197 | 0.986 | 0.909 | 0.917 | 0.921 | 1.19 | 0.909 | 1.36 | 0.940 |
+| Generic | 592 | 1.000 | 0.863 | 0.917 | 0.965 | 1.30 | 0.892 | 1.53 | 0.962 |
+| Reconnaissance | 522 | 0.999 | 0.921 | 0.978 | 0.986 | 1.20 | 0.921 | 1.37 | 0.957 |
+| Shellcode | 67 | 1.000 | 0.915 | 0.935 | 0.950 | 1.12 | 0.915 | 1.38 | 0.920 |
+
+Top 1, 2 and 3 are the shares of detected flows whose true class is among the 1, 2 or 3 most probable of the 9 attack classes; "coverage" and "set size" are for the conformal sets, given that the flow was detected (end-to-end coverage, which also counts flows that were not detected, is in `conformal_two_stage_summary.csv`).
+
+What this shows:
+- For Analysis, Backdoor and DoS, one label is right for 20% to 35% of detected flows, while a set of about 2.3 to 2.7 attack classes holds the true class for 83% to 92% of them (alpha 0.10), and the three most probable classes hold it for 86% to 98%.
+- For Fuzzers, Generic, Reconnaissance and Shellcode the sets are almost always one or two classes.
+- The sets are no more efficient than a fixed top-k: for Analysis, a set of 2.63 classes covers 0.887, which is what interpolating between top 2 (0.736) and top 3 (0.975) gives. The sets add an adaptive size and a coverage statement; they do not create information the features lack.
+- Coverage is close to the target but not guaranteed on a finite test set. Backdoor is lowest (0.830 against 0.90 at alpha 0.10; 0.879 against 0.95 at alpha 0.05); its calibration set has 59 flows, which leaves the realised coverage uncertain by several points, and its test set has 89 flows. Analysis is detected for 92.5% of its flows against a target of 95%, again within the sampling error of 89 flows.
+
+### 14.3 Limits of section 14
+
+One dataset, one random split (the validation and test flows come from the same random draw, which the coverage statement needs), a fixed calibration and test set across the 3 seeds so the seeds add no independent test noise, calibration sets of 58 to 59 flows for Analysis and Backdoor, Worms excluded from the guarantees, a single nonconformity score (1 minus the probability) and one model family (LightGBM; the GNN was not used), the in-sample overlap numbers are optimistic bounds, and the checks of 14.1 were run once. Nothing here tests whether the sets help a human analyst; we only report what they contain.
