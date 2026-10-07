@@ -1,0 +1,11 @@
+class,flows,share with an identical-feature twin of another class (%),F1 of the most-common-label rule (in sample),best possible F1 of any rule on these features (in sample)
+Analysis,299,80.6,0.383,0.383
+Backdoor,297,84.5,0.286,0.374
+DoS,823,33.8,0.792,0.8
+Exploits,4040,7.0,0.963,0.964
+Fuzzers,3989,8.0,0.958,0.961
+Generic,1973,0.6,0.995,0.997
+Normal,624483,0.0,1.0,1.0
+Reconnaissance,1740,0.9,0.995,0.995
+Shellcode,223,0.0,1.0,1.0
+Worms,24,0.0,1.0,1.0

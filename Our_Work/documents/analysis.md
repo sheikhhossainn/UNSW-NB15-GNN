@@ -160,7 +160,7 @@ Our 10-class macro F1 of about 0.67 is in a plausible range, but protocols diffe
 - The final model was chosen using test macro F1 among five variants (section 5), so 0.670 may be slightly optimistic.
 - Worms has 34 test rows and moves macro F1 by several hundredths; we give results without Worms where it matters.
 - One graph definition ((IP, port) nodes, no time information) and two GNN architectures without tuning. The paper-style network (section 8) was trained for at most 500 full-batch epochs, many runs stopped near that limit, and its learning rate was not tuned. We ruled out three explanations for the gap to the tree model but did not identify the remaining cause.
-- Section 12 uses a different split (5:2:3, stratified random) from sections 1 to 11 (80/20), so its numbers are not directly comparable with theirs. It is not an exact replication of the paper (several settings are not stated, and its data has 700,001 flows against our 2,042,340), GTCN-G itself was not reimplemented, no run keeps duplicate rows, and the LightGBM seeds differ only through the binning sample.
+- Sections 12 and 13 use a different split (5:2:3, stratified random) from sections 1 to 11 (80/20), so its numbers are not directly comparable with theirs. It is not an exact replication of the paper (several settings are not stated, and its data has 700,001 flows against our 2,042,340), GTCN-G itself was not reimplemented, no run keeps duplicate rows, and the LightGBM seeds differ only through the binning sample.
 - The merged-class numbers are a view of a changed task, not results.
 - Sections 2 to 4 quote numbers measured at the time, with the two weaknesses described in section 2; later sections use the corrected pipelines.
 
@@ -217,3 +217,66 @@ In the unweighted LightGBM validation log loss rose from the first tree (0.136 a
 ## Files
 
 Notebooks: `unsw-nb15-preprocessing`, `unsw-nb15-baseline`, `unsw-nb15-gnn`, `unsw-nb15-design-controls`, `unsw-nb15-ttl-ablation`, `unsw-nb15-class-merge-check`, `unsw-nb15-gnn-density`, `unsw-nb15-gnn-weights`, `unsw-nb15-egraphsage`, `unsw-nb15-graph-features`, `unsw-nb15-bootstrap`, `unsw-nb15-paper-split-replication`, `unsw-nb15-paper-split-improved`, `unsw-nb15-plain-lightgbm-check`, and the earlier `unsw-nb15-gnn-vs-tabular` and `unsw-nb15-gnn-ablation` (the latter superseded by `gnn-density`). Notebooks are in `Our_Work/notebooks/`, grouped into `01_preprocessing`, `02_tabular_models`, `03_graph_models`, `04_evaluation` and `05_paper_replication` (the two earlier ones in `superseded/`). Figures and per-run CSVs are in the matching `*_figures/` folders under `Our_Work/figures/`. The Word report and the literature comparison are in `Our_Work/documents/` (`UNSW-NB15-Report.docx`, `UNSW-NB15-Literature-Comparison.docx`).
+
+## 13. The paper's own data, a GTCN-G style model and the minority classes
+
+Section 12 used all our data. Table I of the GTCN-G paper lists 700,001 UNSW-NB15 flows with 96.83% Normal. We counted the four raw files (`unsw-nb15-raw-rowcount-check`): UNSW-NB15_1.csv has exactly 700,001 rows and the same class shares as the paper's Table II for all ten classes (Normal 96.826%, Generic 1.075, Exploits 0.773, Fuzzers 0.722, Reconnaissance 0.251, DoS 0.167, Backdoor 0.076, Analysis 0.075, Shellcode 0.032, Worms 0.003); the other files have 92.5%, 77.5% and 79.8% Normal. The paper names no file, so this is an inference from the counts. The file contains 59,213 duplicate rows (8.5%); the paper does not say whether it removed them, and our preprocessing did. Rows keep their position in the raw files, so the first file's flows are the rows with position below 700,001: 637,891 flows after duplicate removal, 97.9% Normal. All runs below use a stratified 5:2:3 split of these flows (train 318,945, validation 127,578, test 191,368) and 3 seeds.
+
+### 13.1 The paper's scores against predicting Normal
+
+Weighted F1 of a model that predicts Normal for every flow is p times 2p/(1+p), where p is the Normal share: 0.9526 for the paper's 96.83%, 0.9686 for our subset (97.9%), 0.9319 for the test set of section 12 (our collapsed run with learning rate 0.007 scored 0.9319, as the formula says). The paper reports 0.9512 for GTCN-G and 0.8756 to 0.9178 for its baselines, all below 0.9526. This assumes the paper's test set has about its class mix, which a random or stratified split would give; the paper does not state its split.
+
+### 13.2 Baseline on the paper's data (`unsw-nb15-paper-subset-replication`, GPU, 3 seeds)
+
+Same E-GraphSAGE-M style network as 12.1. Weighted F1 0.9921 ± 0.0002 after epoch 10 and 0.9928 ± 0.0002 at the best validation epoch (33, 76, 39); macro F1 0.535 ± 0.018 and 0.562 ± 0.008. The paper reports 0.8934 for this baseline, so using the paper's data did not close the gap. Per-class F1 at the best epoch: Normal 0.999, Reconnaissance 0.887, Generic 0.857, Exploits 0.781, Shellcode 0.771, Fuzzers 0.725, Analysis 0.276, Backdoor 0.177, DoS 0.148, Worms 0.000 (24 flows in the whole subset).
+
+### 13.3 A GTCN-G style model with ablations (`unsw-nb15-gtcng-style-model`, GPU, 3 seeds)
+
+The paper has no code, so we implemented the parts it describes: flows as nodes of the line graph (neighbours are the flows at the two endpoints, 8 sampled per endpoint, the flow itself excluded, ordered by position in the raw file), 6-head attention with dropout 0.5, a residual branch (linear transform of the flow's own features), a gated temporal convolution over the ordered neighbours and a mean graph convolution. Simplifications: one hop, a mean instead of the adaptive adjacency matrix (not feasible for hundreds of thousands of flows), our own temporal ordering, plain cross-entropy, Adam, learning rate 0.001. It is a GTCN-G style model, not a copy. Test scores at the best validation epoch:
+
+| Condition | weighted F1 | macro F1 |
+|---|---|---|
+| Baseline network (13.2) | 0.9928 ± 0.0002 | 0.562 ± 0.008 |
+| Full | 0.9925 ± 0.0001 | 0.550 ± 0.004 |
+| No residual branch | 0.9899 ± 0.0004 | 0.439 ± 0.009 |
+| Mean instead of attention | 0.9925 ± 0.0002 | 0.558 ± 0.006 |
+| No temporal branch | 0.9925 ± 0.0001 | 0.542 ± 0.006 |
+| No graph convolution branch | 0.9925 ± 0.0001 | 0.549 ± 0.018 |
+| Isolated flows | 0.9916 ± 0.0003 | 0.535 ± 0.008 |
+| Shuffled neighbours | 0.9917 ± 0.0002 | 0.542 ± 0.004 |
+
+Paired differences (bootstrap, seed-42 predictions), weighted F1 / macro F1:
+- Full minus baseline network: -0.0002 (-0.0004 to 0.0000) / -0.005 (-0.020 to +0.009).
+- Full minus no residual branch: +0.0025 (+0.0022 to +0.0029) / +0.108 (+0.092 to +0.122).
+- Full minus isolated flows: +0.0012 (+0.0009 to +0.0015) / +0.024 (+0.012 to +0.037).
+- Full minus shuffled neighbours: +0.0009 (+0.0006 to +0.0012) / +0.009 (-0.007 to +0.025).
+- Full minus mean instead of attention: 0.0000 (-0.0002 to +0.0002) / -0.013 (-0.026 to +0.001).
+- Full minus no temporal branch: +0.0001 (-0.0001 to +0.0003) / +0.010 (-0.002 to +0.023).
+- Full minus no graph convolution branch: 0.0000 (-0.0002 to +0.0003) / -0.004 (-0.018 to +0.012).
+
+What this shows: the full model is not better than the simple baseline network; removing the residual branch costs 0.11 macro F1 and sets Shellcode F1 to 0, which says the flow's own features are what the model needs (without them, a flow with no neighbours has nothing to classify from); real neighbours add about 0.001 weighted F1 over isolated flows; attention, the temporal branch and the graph convolution show no measurable effect. The conclusions hold for our implementation, not necessarily for the authors' model.
+
+### 13.4 Do loss changes help the minority classes? (`unsw-nb15-gtcng-minority-classes`, GPU, 3 seeds)
+
+The full model of 13.3 with four losses, each decoded by the largest probability or with per-class scales tuned on validation macro F1; the stopping epoch is chosen on validation macro F1. Test scores:
+
+| Loss | Decoding | weighted F1 | macro F1 | Analysis | Backdoor | DoS |
+|---|---|---|---|---|---|---|
+| Plain | largest probability | 0.9923 ± 0.0007 | 0.554 ± 0.018 | 0.22 | 0.22 | 0.14 |
+| Plain | tuned class scales | 0.9922 ± 0.0009 | 0.558 ± 0.037 | 0.23 | 0.25 | 0.17 |
+| Square-root weights | largest probability | 0.9910 ± 0.0001 | 0.559 ± 0.005 | 0.23 | 0.22 | 0.20 |
+| Square-root weights | tuned class scales | 0.9919 ± 0.0004 | 0.567 ± 0.001 | 0.23 | 0.20 | 0.26 |
+| Balanced weights | largest probability | 0.9905 ± 0.0002 | 0.549 ± 0.007 | 0.25 | 0.21 | 0.24 |
+| Balanced weights | tuned class scales | 0.9908 ± 0.0001 | 0.558 ± 0.006 | 0.23 | 0.23 | 0.23 |
+| Logit-adjusted | largest probability | 0.9905 ± 0.0002 | 0.555 ± 0.008 | 0.26 | 0.16 | 0.24 |
+| Logit-adjusted | tuned class scales | 0.9906 ± 0.0001 | 0.560 ± 0.004 | 0.22 | 0.22 | 0.25 |
+
+Paired differences from plain with largest-probability decoding (seed 42), weighted F1 / macro F1: square-root weights -0.0017 / -0.019 (-0.033 to -0.005); balanced weights -0.0025 / -0.030 (-0.045 to -0.014); logit-adjusted -0.0024 / -0.019 (-0.036 to -0.003); square-root weights with tuned scales -0.0005 / -0.006 (-0.021 to +0.007); plain with tuned scales -0.0002 / +0.012 (+0.001 to +0.024). No loss change raised macro F1 beyond the noise of the seeds (the largest mean gain is 0.013 against a seed standard deviation of 0.018 for the plain loss); only DoS improved clearly. This differs from LightGBM on all our data (class weights +0.075 macro F1, section 12.2); we did not test why.
+
+### 13.5 An overlap ceiling on the paper's subset
+
+Share of each class's flows (after duplicate removal) that have an identical-feature twin of another class, and the best F1 any rule using only these 45 features can reach for the class (choose the identical-feature groups to label as that class so that F1 is highest; in sample, so an optimistic upper bound; `paper_subset_figures/overlap_ceiling.csv`, which also lists the F1 of the most-common-label rule): Analysis 80.6% / 0.383, Backdoor 84.5% / 0.374, DoS 33.8% / 0.800, Exploits 7.0% / 0.964, Fuzzers 8.0% / 0.961, Generic 0.6% / 0.997, Reconnaissance 0.9% / 0.995, Normal, Shellcode and Worms 0.0% / 1.000. Our models reach 0.16 to 0.28 on Analysis and 0.16 to 0.25 on Backdoor, so the overlap caps what any model can reach but leaves a gap of roughly 0.1 to 0.2; it does not by itself explain why our models stay near 0.2. The graph could in principle add information; in 13.3 it added about 0.001 weighted F1.
+
+### 13.6 Limits of section 13
+
+The paper's file is inferred from row count and class mix; duplicates were removed here and probably not in the paper (a run with duplicates kept was not done); the paper's split, loss and optimizer are not stated; the GTCN-G style model is our own implementation with simplifications; 3 seeds, and the bootstrap intervals use the seed-42 predictions only; Worms has 24 flows in the subset and its F1 is not reliable; the binary task was not run; the comparison with predicting Normal assumes the paper's test set has about its class mix.

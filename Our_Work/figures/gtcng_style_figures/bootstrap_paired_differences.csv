@@ -1,0 +1,14 @@
+model,minus,weighted F1 diff,weighted lo,weighted hi,macro F1 diff,macro lo,macro hi
+gtcng:full,baseline,-0.0002,-0.0004,0.0,-0.0053,-0.0196,0.0092
+gtcng:full,gtcng:isolated flows,0.0012,0.0009,0.0015,0.0244,0.0123,0.0371
+gtcng:full,gtcng:shuffled neighbours,0.0009,0.0006,0.0012,0.0085,-0.0068,0.0246
+gtcng:shuffled neighbours,gtcng:isolated flows,0.0003,0.0001,0.0006,0.0159,0.0021,0.0284
+gtcng:full,gtcng:no residual,0.0025,0.0022,0.0029,0.1075,0.0918,0.1216
+gtcng:full,gtcng:mean instead of attention,0.0,-0.0002,0.0002,-0.0128,-0.0263,0.0007
+gtcng:full,gtcng:no temporal branch,0.0001,-0.0001,0.0003,0.0101,-0.0019,0.0234
+gtcng:full,gtcng:no graph convolution branch,0.0,-0.0002,0.0003,-0.0039,-0.0182,0.0115
+min:sqrt weights|largest probability,min:plain|largest probability,-0.0017,-0.002,-0.0014,-0.0187,-0.0327,-0.0045
+min:sqrt weights|tuned class scales,min:plain|largest probability,-0.0005,-0.0007,-0.0002,-0.0062,-0.0208,0.0071
+min:balanced weights|largest probability,min:plain|largest probability,-0.0025,-0.0028,-0.0021,-0.0304,-0.0451,-0.0137
+min:logit-adjusted|largest probability,min:plain|largest probability,-0.0024,-0.0028,-0.002,-0.019,-0.0361,-0.0034
+min:plain|tuned class scales,min:plain|largest probability,-0.0002,-0.0004,0.0001,0.0117,0.0013,0.0238

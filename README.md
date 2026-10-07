@@ -21,6 +21,9 @@ These are observations from one dataset and one split. The full evidence and the
 | Graph features did not help LightGBM | 0.6709 vs 0.6695 |
 | Both GNNs stay below the best tree model | 0.07 to 0.08 macro F1; cause not isolated |
 | On a 5:2:3 split like the GTCN-G paper's, every model we trained scores a weighted F1 of 0.980 to 0.984, above the 0.9512 that paper reports | Not like-for-like: the paper leaves out its preprocessing, split type and loss, its data has 700,001 flows against our 2,042,340, and our version of its E-GraphSAGE-M baseline scores 0.981 where it reports 0.8934. A tree model without a graph is among those above 0.9512 |
+| The paper's data is the first raw file, UNSW-NB15_1.csv (700,001 flows, same class mix as its Table II). On it our E-GraphSAGE-M style baseline scores weighted F1 0.993 (paper: 0.8934); predicting Normal for every flow would score about 0.953 on the paper's class mix, above the 0.9512 it reports for GTCN-G | Our subset removes duplicates and has 97.9% Normal; the paper's split, preprocessing and loss are not stated; the 0.953 assumes its test set has about its class mix |
+| Our GTCN-G style model on that data scores 0.9925 weighted F1, no better than the simple network (0.9928). Without the residual branch (the flow's own features) macro F1 drops by 0.11; attention, temporal and graph-convolution branches show no measurable effect; real neighbours add about 0.001 weighted F1 over isolated flows | Our own implementation with simplifications, not the authors' model; 3 seeds; paired bootstrap on seed 42 |
+| Class weights and a logit-adjusted loss did not raise macro F1 for that model. 81% of Analysis and 85% of Backdoor flows have an identical-feature twin of another class, which caps their F1 at about 0.38 and 0.37 in sample | Our models reach about 0.2 on both, so the overlap explains part of the shortfall, not all of it; loss changes: 3 seeds |
 | On the 5:2:3 split the best macro F1 is 0.667 (class-weighted LightGBM with class scales tuned on validation); the graph again did not help | Graph minus no graph -0.010 macro F1 (-0.018 to -0.002); two-stage design no gain here (-0.002) |
 | Weighted F1 was 0.978 to 0.9825 for the paper-style GNN conditions and the best LightGBM model, so it cannot tell them apart | Macro F1 ranges from 0.51 to 0.67 |
 
@@ -31,12 +34,12 @@ README.md
 LICENSE
 .gitignore
 Our_Work/
-  notebooks/              14 notebooks that produce the results, grouped by purpose
+  notebooks/              18 notebooks that produce the results, grouped by purpose
     01_preprocessing/     data cleaning and export
     02_tabular_models/    baselines and the LightGBM experiments
     03_graph_models/      the GNN experiments and graph features for LightGBM
     04_evaluation/        bootstrap intervals
-    05_paper_replication/ the 5:2:3 split of the GTCN-G paper: baseline, improvements, LightGBM check
+    05_paper_replication/ the GTCN-G paper: its data, its baseline, our GTCN-G style model with ablations, loss changes for the minority classes, LightGBM checks
     superseded/           2 earlier notebooks kept for reference
   documents/              report, comparison with GTCN-G, literature comparison, trial log
   figures/                charts and per-run CSVs, one folder per notebook
@@ -88,6 +91,10 @@ Uses a 5:2:3 stratified random split (train/validation/test) built from the same
 | `unsw-nb15-paper-split-replication.ipynb` | The paper's baseline on our data: an E-GraphSAGE-M style network (sampled neighbours, batches of 500), trained past the paper's 10 epochs with training and validation curves. Reports weighted and macro F1 after epoch 10 and at the best validation epoch. |
 | `unsw-nb15-paper-split-improved.ipynb` | What improves on it: four LightGBM variants (plain, class weights, two-stage, class weights with class scales tuned on validation) and an improved E-GraphSAGE-M with and without the graph. Bootstrap intervals and paired differences. |
 | `unsw-nb15-plain-lightgbm-check.ipynb` | Test F1 of LightGBM against the number of trees, with and without class weights, to check why the unweighted model stops after one tree. |
+| `unsw-nb15-raw-rowcount-check.ipynb` | Rows, duplicates and class shares of the four raw UNSW-NB15 files, to identify which file matches the paper's Table I and II (the first one does). |
+| `unsw-nb15-paper-subset-replication.ipynb` | Notebook A's baseline again, on the flows of the first raw file only (637,891 flows after duplicate removal), 3 seeds. |
+| `unsw-nb15-gtcng-style-model.ipynb` | Our implementation of GTCN-G's main parts (line graph, 6-head attention, residual branch, gated temporal convolution, graph convolution) on that subset, with one-part-off ablations, isolated flows and shuffled neighbours, 3 seeds. The documented results were run in two kernels (first four and last three conditions). |
+| `unsw-nb15-gtcng-minority-classes.ipynb` | The same model with plain, square-root-weighted, balanced-weighted and logit-adjusted losses, each decoded with and without class scales tuned on validation, 3 seeds. |
 
 #### `superseded/`
 
@@ -121,6 +128,9 @@ Each folder holds the charts (`fig_NN.png`) and per-run CSVs saved by the notebo
 | `graph_features_figures/` | graph-features | `fig_01.png`, `fig_02.png`; `graph_feature_runs.csv`. |
 | `paper_split_figures/` | paper-split-replication | `fig_01.png`, `fig_02.png` training and validation curves; `fig_03.png` weighted F1 against the paper's reported values; `fig_04.png` per-class F1; per-run, per-class and history CSVs. |
 | `paper_split_improved_figures/` | paper-split-improved | `fig_01.png`, `fig_02.png` GNN curves; `fig_03.png` weighted and macro F1 of every condition; `fig_04.png` per-class F1 heatmap; run, summary, bootstrap and paired-difference CSVs. |
+| `paper_subset_figures/` | paper-subset-replication | `fig_01.png` to `fig_04.png` as for the paper-split baseline; run, summary, history and per-class CSVs; `overlap_ceiling.csv` share of each class with an identical-feature twin of another class, the best possible F1 of any rule on these features and the F1 of the most-common-label rule (both in sample). |
+| `gtcng_style_figures/` | gtcng-style-model | `fig_01.png` training and validation loss of the full model; `fig_02.png` weighted and macro F1 of every condition; run, summary, history and per-class CSVs; `bootstrap_paired_differences.csv` paired bootstrap intervals (seed 42) for the ablations and the loss comparisons. |
+| `gtcng_minority_figures/` | gtcng-minority-classes | `fig_01.png` weighted and macro F1 by loss and decoding; `fig_02.png` per-class F1 heatmap; run, summary, history and per-class CSVs. |
 | `bootstrap_figures/` | bootstrap | `fig_01.png` every condition with its interval; `fig_02.png` paired differences; `bootstrap_scores.csv`, `bootstrap_differences.csv`. |
 | `gnn_ablation_figures/`, `gnn_vs_tabular_figures/` | superseded notebooks | Figures and CSVs of the two earlier analyses. |
 
@@ -134,4 +144,4 @@ Each GNN notebook has a `DEBUG` switch at the top for a quick smoke test on a sm
 
 ## Limits
 
-One dataset and one random split (80/20, plus a 5:2:3 split for the paper replication, which is not an exact replication because several settings of the paper are not stated and its data has 700,001 flows against our 2,042,340); 3 to 5 seeds (the LightGBM seeds differ only through the binning sample); LightGBM is unstable with many trees and relies on early stopping; the final tabular model was chosen using the test set; Worms has only 34 test rows; the GNNs were not tuned and the paper-style one was trained for at most 500 full-batch epochs; the literature check is partly abstract-only. See `analysis.md` for the details.
+One dataset and one random split (80/20, plus a 5:2:3 split for the paper replication, which is not an exact replication because several settings of the paper are not stated and its data has 700,001 flows against our 2,042,340; a second replication on the paper's own file removes duplicates, which the paper probably did not); the GTCN-G style model is our own implementation with simplifications, not the authors' model; 3 to 5 seeds (the LightGBM seeds differ only through the binning sample); LightGBM is unstable with many trees and relies on early stopping; the final tabular model was chosen using the test set; Worms has only 34 test rows; the GNNs were not tuned and the paper-style one was trained for at most 500 full-batch epochs; the literature check is partly abstract-only. See `analysis.md` for the details.
